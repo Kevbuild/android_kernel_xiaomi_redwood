@@ -290,8 +290,8 @@ static irqreturn_t tcs_tx_done(int irq, void *p)
 		ipc_log_string(drv->ipc_log_ctx,
 			       "IRQ response: m=%d err=%d", i, err);
 
+		__tcs_trigger(drv, i, false);
                 if (!drv->tcs[ACTIVE_TCS].num_tcs) {
-                        __tcs_trigger(drv, i, false);
                         /*
                          * Disable interrupt for this TCS to avoid being
                          * spammed with interrupts coming when the solver
