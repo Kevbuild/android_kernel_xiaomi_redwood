@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 #include <linux/module.h>
@@ -604,7 +605,8 @@ static irqreturn_t tsens_tm_critical_irq_thread(int irq, void *data)
 static irqreturn_t tsens_tm_irq_thread(int irq, void *data)
 {
 	struct tsens_device *tm = data;
-	unsigned int i, status, threshold, temp;
+	unsigned int i, status;
+	int threshold, temp;
 	unsigned long flags;
 	void __iomem *sensor_status_addr;
 	void __iomem *sensor_int_mask_addr;
