@@ -91,9 +91,8 @@ $(info -- KernelSU-Next Git repo detected at: $(GIT_ROOT))
 endif
 endif
 
-# Git version never runs here. Pin it: 30000 + commit count + 289 = 33296 at legacy HEAD.
-# Tag stays v3.4.0-legacy, the string the manager shows and the manager that pairs here.
-KSU_VERSION_OVERRIDE ?= 33296
+# No git count here, so pin it: 30000 + 3016 + 289 = 33305, legacy at KernelSU-Next #1573, still tagged v3.4.0-legacy.
+KSU_VERSION_OVERRIDE ?= 33305
 KSU_VERSION_TAG_OVERRIDE ?= v3.4.0-legacy
 
 # Calculate version if git version is available
@@ -142,10 +141,9 @@ ifndef KSU_NEXT_MANAGER_HASH
 KSU_NEXT_MANAGER_HASH := 79e590113c4c4c0c222978e413a5faa801666957b1212a328e46c00c69821bf7
 endif
 
-# UAPI level advertised to the manager. Raise only when the manager-facing
-# ioctl ABI is unchanged; a genuine ABI change needs a backport. v3.4.0 = 4.
+# Manager UAPI level, raised only together with the matching ABI backport (v3.4.1 = 5).
 ifndef KSU_MANAGER_COMPAT_UAPI
-KSU_MANAGER_COMPAT_UAPI := 4
+KSU_MANAGER_COMPAT_UAPI := 5
 endif
 ccflags-y += -DKERNEL_SU_UAPI_VERSION=$(KSU_MANAGER_COMPAT_UAPI)
 $(info -- KernelSU-Next Manager compat UAPI: $(KSU_MANAGER_COMPAT_UAPI))
