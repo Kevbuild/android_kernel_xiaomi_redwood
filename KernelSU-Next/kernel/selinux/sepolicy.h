@@ -6,6 +6,10 @@
 
 #include "ss/policydb.h"
 
+// Keep policydb.len in step with what the policy actually serializes to.
+// Best effort: on failure policydb.len is padded instead.
+int ksu_policydb_fixup_len(struct policydb *db, rwlock_t *lock, const char *tag);
+
 // symtab_search is introduced on 5.9.0:
 // https://elixir.bootlin.com/linux/v5.9-rc1/source/security/selinux/ss/symtab.h
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)

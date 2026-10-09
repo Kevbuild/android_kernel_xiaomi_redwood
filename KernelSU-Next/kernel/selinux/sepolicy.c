@@ -7,6 +7,7 @@
 #include <linux/gfp.h>
 #include <linux/printk.h>
 #include <linux/slab.h>
+#include <linux/sizes.h>
 #include <linux/version.h>
 
 #include "sepolicy.h"
@@ -1306,6 +1307,88 @@ bool ksu_genfscon(struct policydb *db, const char *fs_name, const char *path,
                   const char *ctx)
 {
     return add_genfscon(db, fs_name, path, ctx);
+}
+
+#define KSU_SEPOL_SYNC_MAX_BUF SZ_64M
+#define KSU_SEPOL_SYNC_SLACK SZ_256K
+#define KSU_SEPOL_SYNC_MAX_TRIES 4
+
+static int ksu_policydb_sync_len(struct policydb *db, rwlock_t *lock, const char *tag)
+{
+    const size_t tracked = db->len;
+    unsigned int attempt = 0;
+    size_t cap;
+    int ret = -EINVAL;
+
+    if (tracked + KSU_SEPOL_SYNC_SLACK > KSU_SEPOL_SYNC_MAX_BUF) {
+        pr_err("sepolicy: [%s] policydb.len %zu is too large to measure\n",
+               tag, tracked);
+        return -E2BIG;
+    }
+
+    cap = tracked + KSU_SEPOL_SYNC_SLACK;
+
+    while (attempt < KSU_SEPOL_SYNC_MAX_TRIES &&
+           cap <= KSU_SEPOL_SYNC_MAX_BUF) {
+        struct policy_file fp;
+        size_t remaining;
+        /* kvmalloc, not vmalloc: legacy's compat layer remaps it for < 4.12 */
+        void *buf = kvmalloc(cap, GFP_KERNEL);
+
+        if (!buf) {
+            pr_err("sepolicy: [%s] kvmalloc(%zu) failed\n", tag, cap);
+            return -ENOMEM;
+        }
+
+        attempt++;
+        fp.data = buf;
+        fp.len = cap;
+        // a policy load replaces the policydb under this lock, so walk it as security_read_policy() does
+        if (lock)
+            read_lock(lock);
+        ret = policydb_write(db, &fp);
+        if (lock)
+            read_unlock(lock);
+        remaining = fp.len;
+        kvfree(buf);
+
+        if (!ret) {
+            const size_t actual = cap - remaining;
+
+            ksu_dbg("sepolicy: [%s] len tracked=%zu actual=%zu delta=%zd attempts=%u buf=%zu\n",
+                    tag, tracked, actual,
+                    (ssize_t)actual - (ssize_t)tracked, attempt, cap);
+            db->len = actual;
+            return 0;
+        }
+
+        /* put_entry() returns -EINVAL once the buffer is exhausted */
+        if (ret != -EINVAL) {
+            pr_err("sepolicy: [%s] policydb_write failed: %d\n", tag, ret);
+            return ret;
+        }
+
+        ksu_dbg("sepolicy: [%s] buffer %zu too small (attempt %u)\n",
+                tag, cap, attempt);
+        cap *= 2;
+    }
+
+    pr_err("sepolicy: [%s] giving up after %u attempts (tracked=%zu): %d\n",
+           tag, attempt, tracked, ret);
+    return ret;
+}
+
+int ksu_policydb_fixup_len(struct policydb *db, rwlock_t *lock, const char *tag)
+{
+    int ret = ksu_policydb_sync_len(db, lock, tag);
+
+    if (ret) {
+        db->len += KSU_SEPOL_SYNC_SLACK;
+        pr_warn("sepolicy: [%s] could not measure policydb (%d), padded policydb.len by %zu to %zu\n",
+                tag, ret, (size_t)KSU_SEPOL_SYNC_SLACK,
+                (size_t)db->len);
+    }
+    return ret;
 }
 
 #ifdef SELINUX_POLICY_INSTEAD_SELINUX_SS
