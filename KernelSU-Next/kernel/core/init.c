@@ -24,6 +24,7 @@
 #include "infra/file_wrapper.h"
 #include "selinux/selinux.h"
 #include "feature/selinux_hide.h"
+#include "feature/shell_su_adb_only.h"
 #include "feature/adb_root.h"
 
 extern void __init ksu_lsm_hook_init(void);
@@ -149,6 +150,8 @@ int __init kernelsu_init(void)
 
 	ksu_selinux_hide_init();
 
+	ksu_shell_su_adb_only_init();
+
 	ksu_supercalls_init();
 
 	ksu_app_profile_init();
@@ -208,6 +211,8 @@ void __exit kernelsu_exit(void)
 {
 	// stop the hooks first so no new callbacks arrive during teardown
 	ksu_syscall_hook_manager_exit();
+
+	ksu_shell_su_adb_only_exit();
 
 	// teardown for the ksu_selinux_hide_init() above
 	ksu_selinux_hide_exit();

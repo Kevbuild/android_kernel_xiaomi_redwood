@@ -40,6 +40,7 @@ static inline u32 current_sid(void)
 #define KSU_FILE_CONTEXT "u:object_r:" KERNEL_SU_FILE ":s0"
 #define ZYGOTE_CONTEXT "u:r:zygote:s0"
 #define INIT_CONTEXT "u:r:init:s0"
+#define ADBD_CONTEXT "u:r:adbd:s0"
 
 void setup_selinux(const char *, struct cred *);
 
@@ -60,6 +61,8 @@ bool susfs_is_current_ksu_domain(void);
 bool is_zygote(const struct cred* cred);
 
 bool is_init(const struct cred* cred);
+
+bool is_adbd(const struct cred *cred);
 
 void apply_kernelsu_rules();
 
