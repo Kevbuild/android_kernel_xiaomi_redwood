@@ -290,22 +290,17 @@ static irqreturn_t tcs_tx_done(int irq, void *p)
 		ipc_log_string(drv->ipc_log_ctx,
 			       "IRQ response: m=%d err=%d", i, err);
 
+		/* Clear AMC trigger and enable modes for this TCS */
 		__tcs_trigger(drv, i, false);
-                if (!drv->tcs[ACTIVE_TCS].num_tcs) {
-                        /*
-                         * Disable interrupt for this TCS to avoid being
-                         * spammed with interrupts coming when the solver
-                         * sends its wake votes.
-                         */
-                        enable_tcs_irq(drv, i, false);
-                }
-
 skip:
 		/* Reclaim the TCS */
 		write_tcs_reg(drv, RSC_DRV_CMD_ENABLE, i, 0);
 		write_tcs_reg(drv, RSC_DRV_IRQ_CLEAR, 0, BIT(i));
 		spin_lock(&drv->lock);
 		clear_bit(i, drv->tcs_in_use);
+		/* Disable the wake TCS interrupt so solver wake votes do not spam it */
+		if (!drv->tcs[ACTIVE_TCS].num_tcs)
+			enable_tcs_irq(drv, i, false);
 		spin_unlock(&drv->lock);
 		wake_up(&drv->tcs_wait);
 		if (req)
