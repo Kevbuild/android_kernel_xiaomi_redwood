@@ -307,6 +307,7 @@ int __qcom_scm_call_smccc(struct device *dev, struct qcom_scm_desc *desc,
 	int i, ret;
 	size_t alloc_len;
 	const bool atomic = (call_type == QCOM_SCM_CALL_ATOMIC);
+	gfp_t flag = atomic ? GFP_ATOMIC : GFP_NOIO;
 	u32 smccc_call_type = atomic ? ARM_SMCCC_FAST_CALL : ARM_SMCCC_STD_CALL;
 	u32 qcom_smccc_convention = (qcom_convention == SMC_CONVENTION_ARM_32) ?
 				    ARM_SMCCC_SMC_32 : ARM_SMCCC_SMC_64;
@@ -314,7 +315,6 @@ int __qcom_scm_call_smccc(struct device *dev, struct qcom_scm_desc *desc,
 	struct arm_smccc_args smc = {{0}};
 	struct qtee_shm shm = {0};
 	bool use_qtee_shmbridge;
-	u64 args_buf[SMCCC_N_EXT_ARGS];
 
 	smc.args[0] = ARM_SMCCC_CALL_VAL(
 		smccc_call_type,
@@ -336,8 +336,9 @@ int __qcom_scm_call_smccc(struct device *dev, struct qcom_scm_desc *desc,
 			if (ret)
 				return ret;
 		} else {
-			memset(args_buf, 0, sizeof(*args_buf));
-			shm.vaddr = &args_buf;
+			shm.vaddr = kzalloc(alloc_len, flag);
+			if (!shm.vaddr)
+				return -ENOMEM;
 		}
 
 		if (qcom_smccc_convention == SMC_CONVENTION_ARM_32) {
@@ -357,8 +358,11 @@ int __qcom_scm_call_smccc(struct device *dev, struct qcom_scm_desc *desc,
 		shm.paddr = dma_map_single(dev, shm.vaddr, alloc_len,
 						DMA_TO_DEVICE);
 
-		if (use_qtee_shmbridge && dma_mapping_error(dev, shm.paddr)) {
-			qtee_shmbridge_free_shm(&shm);
+		if (dma_mapping_error(dev, shm.paddr)) {
+			if (use_qtee_shmbridge)
+				qtee_shmbridge_free_shm(&shm);
+			else
+				kfree(shm.vaddr);
 			return -ENOMEM;
 		}
 
@@ -388,6 +392,8 @@ int __qcom_scm_call_smccc(struct device *dev, struct qcom_scm_desc *desc,
 		dma_unmap_single(dev, shm.paddr, alloc_len, DMA_TO_DEVICE);
 		if (use_qtee_shmbridge)
 			qtee_shmbridge_free_shm(&shm);
+		else
+			kfree(shm.vaddr);
 	}
 
 	desc->res[0] = res.a1;
