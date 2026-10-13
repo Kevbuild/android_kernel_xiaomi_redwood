@@ -52,7 +52,7 @@ done
 [ "$n" -eq 10 ] || bad "guard count drifted from the known 10 (found $n) - re-check this script against Kbuild"
 
 # Pin the two version constants a build could otherwise silently diverge on.
-grep -q '^KSU_VERSION_OVERRIDE ?= 33305$' "$KBUILD" && ok "KSU_VERSION_OVERRIDE pinned at 33305" || bad "KSU_VERSION_OVERRIDE default changed from 33305"
+grep -q '^KSU_VERSION_OVERRIDE ?= 33309$' "$KBUILD" && ok "KSU_VERSION_OVERRIDE pinned at 33309" || bad "KSU_VERSION_OVERRIDE default changed from 33309"
 grep -q '^KSU_MANAGER_COMPAT_UAPI := 5$' "$KBUILD" && ok "KSU_MANAGER_COMPAT_UAPI pinned at 5" || bad "KSU_MANAGER_COMPAT_UAPI default changed from 5"
 
 exit "$fail"

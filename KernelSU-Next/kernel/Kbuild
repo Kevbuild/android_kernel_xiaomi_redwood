@@ -92,8 +92,8 @@ $(info -- KernelSU-Next Git repo detected at: $(GIT_ROOT))
 endif
 endif
 
-# No git count here, so pin it: 30000 + 3016 + 289 = 33305, legacy at KernelSU-Next #1573, still tagged v3.4.0-legacy.
-KSU_VERSION_OVERRIDE ?= 33305
+# No git count here, so pin it: 30000 + 3020 + 289 = 33309, legacy at KernelSU-Next #1613, still tagged v3.4.0-legacy.
+KSU_VERSION_OVERRIDE ?= 33309
 KSU_VERSION_TAG_OVERRIDE ?= v3.4.0-legacy
 
 # Calculate version if git version is available
