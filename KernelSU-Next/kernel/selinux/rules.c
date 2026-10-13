@@ -283,6 +283,17 @@ static int apply_kernelsu_rules_fn(void *ptr)
     ksu_allow(db, "domain", KERNEL_SU_DOMAIN, "unix_stream_socket", "getopt");
     ksu_allow(db, "domain", KERNEL_SU_DOMAIN, "unix_stream_socket", "getattr");
 
+    // netd's fwmark server has to take sockets from root, or every connect made as root fails
+    {
+        static const char *const classes[] = { "icmp_socket", "rawip_socket", "tcp_socket", "udp_socket" };
+        static const char *const perms[] = { "read", "write", "getattr", "setattr", "getopt", "setopt" };
+        size_t c, p;
+
+        for (c = 0; c < ARRAY_SIZE(classes); c++)
+            for (p = 0; p < ARRAY_SIZE(perms); p++)
+                ksu_allow(db, "netd", KERNEL_SU_DOMAIN, classes[c], perms[p]);
+    }
+
     // use memfd created by su domain
     ksu_allow(db, "domain", KERNEL_SU_DOMAIN, "memfd_file", "execute");
     ksu_allow(db, "domain", KERNEL_SU_DOMAIN, "memfd_file", "getattr");
